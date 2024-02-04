@@ -122,11 +122,11 @@ main(int argc, char** argv)
     /** End ROM Loading **/
 
     /** Start Raylib Window **/
-    InitWindow(32, 64, "c8e");
+    InitWindow(64, 32, "c8e");
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
-        opcode = ram[pc];
+        opcode = (ram[pc] << 8) + (ram[pc + 1]);
 
         vx = (opcode & 0x0F00) >> 8;
         vy = (opcode & 0x00F0) >> 4;
@@ -176,12 +176,12 @@ main(int argc, char** argv)
 
             case 0x6:
                 /* LD Vx, byte */
-                reg[vx] = opcode & 0x00FF;
+                reg[vx] = (opcode & 0x00FF);
                 break;
 
             case 0x7:
                 /* ADD Vx, byte */
-                reg[vx] += opcode & 0x00FF;
+                reg[vx] += (opcode & 0x00FF);
                 break;
 
             case 0x8:
@@ -220,7 +220,7 @@ main(int argc, char** argv)
 
                     case 0x6:
                         /* SHR Vx {, Vy} */
-                        reg[0xF] = reg[vx] & 0x01 ? 1 : 0;
+                        reg[0xF] = (reg[vx] & 0x01) ? 1 : 0;
                         reg[vx] = reg[vx] >> 1;
                         break;
 
@@ -232,7 +232,7 @@ main(int argc, char** argv)
 
                     case 0xE:
                         /* SHL Vx {, Vy} */
-                        reg[0xF] = reg[vx] & 0x80 ? 1 : 0;
+                        reg[0xF] = (reg[vx] & 0x80) ? 1 : 0;
                         reg[vx] = reg[vx] << 1;
                         break;
                 }
@@ -246,7 +246,7 @@ main(int argc, char** argv)
 
             case 0xA:
                 /* LD I, addr */
-                reg[index] = opcode & 0x0FFF;
+                index = (opcode & 0x0FFF);
                 break;
 
             case 0xB:
