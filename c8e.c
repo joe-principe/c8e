@@ -28,6 +28,13 @@ const unsigned char sprD[5] = { 0xE0, 0x90, 0x90, 0x90, 0xE0 };
 const unsigned char sprE[5] = { 0xF0, 0x80, 0xF0, 0x80, 0xF0 };
 const unsigned char sprF[5] = { 0xF0, 0x80, 0xF0, 0x80, 0x80 };
 
+const unsigned char *sprites[16] = {
+    spr0, spr1, spr2, spr3,
+    spr4, spr5, spr6, spr7,
+    spr8, spr9, sprA, sprB,
+    sprC, sprD, sprE, sprF
+};
+
 int 
 main(int argc, char** argv)
 {
@@ -37,14 +44,14 @@ main(int argc, char** argv)
     unsigned char display_buffer[2048] = { 0 };
     unsigned char delay_timer = 0, sound_timer = 0;
     unsigned char sp = 0x00;
+    unsigned char vx = 0, vy = 0;
     unsigned short stack[16] = { 0 };
     unsigned short pc = PROGRAM_START_DEFAULT;
     unsigned short index = 0x0000;
     unsigned short opcode = 0x0000;
-    unsigned char vx = 0, vy = 0;
 
     bool is_waiting_for_keypress = true;
-    int k = 0;
+    int k = 0, rem = 0;
     int keys[16] = {
         KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR,
         KEY_Q,   KEY_W,   KEY_E,     KEY_R,
@@ -52,12 +59,21 @@ main(int argc, char** argv)
         KEY_Z,   KEY_X,   KEY_C,     KEY_V
     };
 
+    unsigned char x = 0, y = 0;
+    unsigned char height = 0, row = 0;
+    unsigned char loc = 0, mask = 0;
+    unsigned char curr_row = 0, curr_pixel = 0, pixel_offset = 0;
+
     int i = 0;
     long length = 0;
     char *rom_bin = NULL;
     FILE *rom_fp = NULL;
 
     srand(time(NULL));
+
+    for (i = 0; i < 80; i++) {
+        ram[i] = sprites[i / 5][i % 5];
+    }
     /** End Initialization **/
 
     /** ROM Loading **/
@@ -75,11 +91,21 @@ main(int argc, char** argv)
     fseek(rom_fp, 0, SEEK_END);
     length = ftell(rom_fp);
     fseek(rom_fp, 0, SEEK_SET);
-    rom_bin = calloc(length + 1, sizeof(char));
 
+    /**
+     * Handles user loading a rom that is greater than usable memory. 4096 - pc
+     * gives the total available ram since pc can either be default or eti 660
+     * location.
+     */
+    if (length > 4096 - pc) {
+        fprintf(stderr, "Error: ROM size is greater than available emulator "
+                " RAM\n");
+        exit(EXIT_FAILURE);
+    }
+
+    rom_bin = calloc(length + 1, sizeof(char));
     if (rom_bin == NULL) {
-        fprintf(stderr, "Error: Could not allocate enough memory for vertex "
-                "shader string");
+        fprintf(stderr, "Error: Could not allocate enough memory for rom_bin");
         exit(EXIT_FAILURE);
     }
     
@@ -89,6 +115,10 @@ main(int argc, char** argv)
     }
 
     fclose(rom_fp);
+    rom_fp = NULL;
+
+    free(rom_bin);
+    rom_bin = NULL;
     /** End ROM Loading **/
 
     /** Start Raylib Window **/
@@ -98,8 +128,8 @@ main(int argc, char** argv)
     while (!WindowShouldClose()) {
         opcode = ram[pc];
 
-        vx = opcode & 0x0F00;
-        vy = opcode & 0x00F0;
+        vx = (opcode & 0x0F00) >> 8;
+        vy = (opcode & 0x00F0) >> 4;
         switch ((opcode & 0xF000) >> 12) {
             case 0x0:
                 if (opcode == 0x00E0) {
@@ -231,6 +261,34 @@ main(int argc, char** argv)
 
             case 0xD:
                 /* DRW Vx, Vy, nibble */
+                reg[0xF] = 0;
+
+                x = reg[vx];
+                y = reg[vy];
+
+                height = (opcode & 0x000F);
+                row = 0;
+
+                while (row < height) {
+                    curr_row = ram[row + index];
+                    pixel_offset = 0;
+
+                    while (pixel_offset < 8) {
+                        loc = x + pixel_offset + ((y + row) * 64);
+                        pixel_offset++;
+
+                        if ((y + row >= 32) || (x + pixel_offset - 1 >= 64))
+                            continue;
+
+                        mask = 1 << (8 - pixel_offset);
+
+                        curr_pixel = (curr_row & mask) >> (8 - pixel_offset);
+                        display_buffer[loc] ^= curr_pixel;
+
+                        reg[0xF] = display_buffer[loc] == 0 ? 1 : 0;
+                    }
+                    row++;
+                }
                 break;
 
             case 0xE:
@@ -257,6 +315,10 @@ main(int argc, char** argv)
                         /* LD Vx, K */
                         is_waiting_for_keypress = true;
 
+                        /**
+                         * Check that the key pressed was actually one of the 16
+                         * that we chose to represent Chip-8 keys
+                         */
                         while (is_waiting_for_keypress) {
                             k = GetKeyPressed();
 
@@ -288,18 +350,33 @@ main(int argc, char** argv)
 
                     case 0x29:
                         /* LD F, Vx */
+                        index = 5 * reg[vx];
+
+                        /* index = ram[5 * vx]; */
                         break;
 
                     case 0x33:
                         /* LD B, Vx */
+                        /* Hundreds in i, tens in i + 1, ones in i + 2 */
+                        for (i = 2; i >= 0; i--) {
+                            rem = reg[vx] % 10;
+                            ram[index + i] = rem;
+                            reg[vx] /= 10;
+                        }
                         break;
 
                     case 0x55:
                         /* LD [I], Vx */
+                        for (i = 0; i <= vx; i++) {
+                            ram[index + i] = reg[i];
+                        }
                         break;
 
                     case 0x65:
                         /* LD Vx, [I] */
+                        for (i = 0; i <= vx; i++) {
+                            reg[i] = ram[index + i];
+                        }
                         break;
                 }
         }
@@ -318,8 +395,14 @@ main(int argc, char** argv)
 
         BeginDrawing();
             ClearBackground(BLACK);
+            for (i = 0; i < 2048; i++) {
+                if (display_buffer[i] == 1) {
+                    DrawPixel(i % 64, i / 32, WHITE);
+                }
+            }
         EndDrawing();
     }
+    /** End Raylib Window **/
 
     CloseWindow();
     return 0;

@@ -10,3 +10,6 @@ Guide to making a CHIP-8 emulator by Tobias V. Langhoff:
 
 Emulation Basics: Write your own Chip 8 Emulator/Interpreter by mmm:
 * https://omokute.blogspot.com/2012/06/emulation-basics-write-your-own-chip-8.html
+
+ROMs for CHIP-8
+* https://github.com/kripod/chip8-roms
