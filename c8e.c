@@ -11,6 +11,10 @@
 #define FONT_START            0x0050
 #define FONT_END              0X009F
 
+#define SCR_WIDTH 64
+#define SCR_HEIGHT 32
+#define SCR_SCALE 10
+
 const unsigned char spr0[5] = { 0xF0, 0x90, 0x90, 0x90, 0xF0 };
 const unsigned char spr1[5] = { 0x20, 0x60, 0x20, 0x20, 0x70 };
 const unsigned char spr2[5] = { 0xF0, 0x10, 0xF0, 0x80, 0xF0 };
@@ -41,7 +45,7 @@ main(int argc, char** argv)
     /** Initialization **/
     unsigned char ram[4096] = { 0 };
     unsigned char reg[16] = { 0 };
-    unsigned char display_buffer[2048] = { 0 };
+    unsigned char display_buffer[SCR_WIDTH * SCR_HEIGHT] = { 0 };
     unsigned char delay_timer = 0, sound_timer = 0;
     unsigned char sp = 0x00;
     unsigned char vx = 0, vy = 0;
@@ -122,7 +126,7 @@ main(int argc, char** argv)
     /** End ROM Loading **/
 
     /** Start Raylib Window **/
-    InitWindow(64, 32, "c8e");
+    InitWindow(SCR_WIDTH * SCR_SCALE, SCR_HEIGHT * SCR_SCALE, "c8e");
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
@@ -395,9 +399,12 @@ main(int argc, char** argv)
 
         BeginDrawing();
             ClearBackground(BLACK);
-            for (i = 0; i < 2048; i++) {
+            for (i = 0; i < SCR_WIDTH * SCR_HEIGHT; i++) {
                 if (display_buffer[i] == 1) {
-                    DrawPixel(i % 64, i / 32, WHITE);
+                    DrawRectangle((i % SCR_WIDTH) * SCR_SCALE,
+                                  (SCR_HEIGHT * SCR_SCALE)
+                                  - (i / SCR_HEIGHT) * SCR_SCALE,
+                                  SCR_SCALE, SCR_SCALE, WHITE);
                 }
             }
         EndDrawing();
