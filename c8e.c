@@ -45,10 +45,10 @@ main(int argc, char** argv)
     /** Initialization **/
     unsigned char ram[4096] = { 0 };
     unsigned char reg[16] = { 0 };
-    unsigned char display_buffer[SCR_WIDTH * SCR_HEIGHT] = { 0 };
+    unsigned char display_buffer[64 * 32] = { 0 };
     unsigned char delay_timer = 0, sound_timer = 0;
     unsigned char sp = 0x00;
-    unsigned char vx = 0, vy = 0;
+    unsigned char vx = 0, vy = 0, kk = 0;
     unsigned short stack[16] = { 0 };
     unsigned short pc = PROGRAM_START_DEFAULT;
     unsigned short index = 0x0000;
@@ -64,9 +64,9 @@ main(int argc, char** argv)
     };
 
     unsigned char x = 0, y = 0;
-    unsigned char height = 0, row = 0;
-    unsigned char loc = 0, mask = 0;
+    unsigned char height = 0, row = 0, mask = 0;
     unsigned char curr_row = 0, curr_pixel = 0, pixel_offset = 0;
+    unsigned short loc = 0;
 
     int i = 0;
     long length = 0;
@@ -126,7 +126,7 @@ main(int argc, char** argv)
     /** End ROM Loading **/
 
     /** Start Raylib Window **/
-    InitWindow(SCR_WIDTH * SCR_SCALE, SCR_HEIGHT * SCR_SCALE, "c8e");
+    InitWindow(640, 320, "c8e");
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
@@ -134,13 +134,13 @@ main(int argc, char** argv)
 
         vx = (opcode & 0x0F00) >> 8;
         vy = (opcode & 0x00F0) >> 4;
+        kk = (opcode & 0x00FF);
         switch ((opcode & 0xF000) >> 12) {
             case 0x0:
                 if (opcode == 0x00E0) {
                     /* CLS */
-                    memset(display_buffer, 0, 2048);
-                }
-                else if (opcode == 0x00EE) {
+                    memset(display_buffer, 0, sizeof(unsigned char) * 32 * 64);
+                } else if (opcode == 0x00EE) {
                     /* RET */
                     sp--;
                     pc = stack[sp];
@@ -162,13 +162,13 @@ main(int argc, char** argv)
 
             case 0x3:
                 /* SE Vx, byte */
-                if (reg[vx] == (opcode & 0x00FF))
+                if (reg[vx] == kk)
                     pc += 2;
                 break;
 
             case 0x4:
                 /* SNE Vx, byte */
-                if (reg[vx] != (opcode & 0x00FF))
+                if (reg[vx] != kk)
                     pc += 2;
                 break;
 
@@ -180,12 +180,12 @@ main(int argc, char** argv)
 
             case 0x6:
                 /* LD Vx, byte */
-                reg[vx] = (opcode & 0x00FF);
+                reg[vx] = kk;
                 break;
 
             case 0x7:
                 /* ADD Vx, byte */
-                reg[vx] += (opcode & 0x00FF);
+                reg[vx] += kk;
                 break;
 
             case 0x8:
@@ -197,17 +197,17 @@ main(int argc, char** argv)
 
                     case 0x1:
                         /* OR Vx, Vy */
-                        reg[vx] = reg[vx] | reg[vy];
+                        reg[vx] = (reg[vx] | reg[vy]);
                         break;
 
                     case 0x2:
                         /* AND Vx, Vy */
-                        reg[vx] = reg[vx] & reg[vy];
+                        reg[vx] = (reg[vx] & reg[vy]);
                         break;
 
                     case 0x3:
                         /* XOR Vx, Vy */
-                        reg[vx] = reg[vx] ^ reg[vy];
+                        reg[vx] = (reg[vx] ^ reg[vy]);
                         break;
 
                     case 0x4:
@@ -260,11 +260,12 @@ main(int argc, char** argv)
 
             case 0xC:
                 /* RND Vx, byte */
-                reg[vx] = (rand() % 256) & (opcode & 0x00FF);
+                reg[vx] = (rand() % 256) & kk;
                 break;
 
             case 0xD:
                 /* DRW Vx, Vy, nibble */
+                /* Something is wrong with this code */
                 reg[0xF] = 0;
 
                 x = reg[vx];
@@ -296,12 +297,11 @@ main(int argc, char** argv)
                 break;
 
             case 0xE:
-                if ((opcode & 0x00FF) == 0x9E) {
+                if (kk == 0x9E) {
                     /* SKP Vx */
                     if (IsKeyDown(keys[opcode & 0x0F00]))
                         pc += 2;
-                }
-                else if ((opcode & 0x00FF) == 0xA1) {
+                } else if (kk == 0xA1) {
                     /* SKNP Vx */
                     if (IsKeyUp(keys[opcode & 0x0F00]))
                         pc += 2;
@@ -309,7 +309,7 @@ main(int argc, char** argv)
                 break;
 
             case 0xF:
-                switch (opcode & 0x00FF) {
+                switch (kk) {
                     case 0x07:
                         /* LD Vx, DT */
                         reg[vx] = delay_timer;
@@ -355,7 +355,6 @@ main(int argc, char** argv)
                     case 0x29:
                         /* LD F, Vx */
                         index = 5 * reg[vx];
-
                         /* index = ram[5 * vx]; */
                         break;
 
@@ -399,12 +398,9 @@ main(int argc, char** argv)
 
         BeginDrawing();
             ClearBackground(BLACK);
-            for (i = 0; i < SCR_WIDTH * SCR_HEIGHT; i++) {
+            for (i = 0; i < 64 * 32; i++) {
                 if (display_buffer[i] == 1) {
-                    DrawRectangle((i % SCR_WIDTH) * SCR_SCALE,
-                                  (SCR_HEIGHT * SCR_SCALE)
-                                  - (i / SCR_HEIGHT) * SCR_SCALE,
-                                  SCR_SCALE, SCR_SCALE, WHITE);
+                    DrawRectangle((i % 64) * 10, (i / 64) * 10, 10, 10, WHITE);
                 }
             }
         EndDrawing();
