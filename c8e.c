@@ -149,7 +149,7 @@ main(int argc, char** argv)
 
             case 0x1:
                 /* JP addr */
-                pc = opcode & 0x0FFF;
+                pc = (opcode & 0x0FFF) - 2;
                 break;
 
             case 0x2:
@@ -157,7 +157,7 @@ main(int argc, char** argv)
                 /* TODO: Make this detect stack overflows */
                 sp++;
                 stack[sp - 1] = pc;
-                pc = (opcode & 0x0FFF);
+                pc = (opcode & 0x0FFF) - 2;
                 break;
 
             case 0x3:
@@ -255,7 +255,7 @@ main(int argc, char** argv)
 
             case 0xB:
                 /* JP V0, addr */
-                pc = (opcode & 0x0FFF) + reg[0];
+                pc = (opcode & 0x0FFF) + reg[0] - 2;
                 break;
 
             case 0xC:
@@ -299,11 +299,11 @@ main(int argc, char** argv)
             case 0xE:
                 if (kk == 0x9E) {
                     /* SKP Vx */
-                    if (IsKeyDown(keys[opcode & 0x0F00]))
+                    if (IsKeyDown(keys[(opcode & 0x0F00) >> 8]))
                         pc += 2;
                 } else if (kk == 0xA1) {
                     /* SKNP Vx */
-                    if (IsKeyUp(keys[opcode & 0x0F00]))
+                    if (IsKeyUp(keys[(opcode & 0x0F00) >> 8]))
                         pc += 2;
                 }
                 break;
@@ -326,6 +326,7 @@ main(int argc, char** argv)
                         while (is_waiting_for_keypress) {
                             k = GetKeyPressed();
 
+                            /* hashmap faster? */
                             for (i = 0; i < 16; i++) {
                                 if (keys[i] == k) {
                                     is_waiting_for_keypress = false;
@@ -355,7 +356,6 @@ main(int argc, char** argv)
                     case 0x29:
                         /* LD F, Vx */
                         index = 5 * reg[vx];
-                        /* index = ram[5 * vx]; */
                         break;
 
                     case 0x33:
