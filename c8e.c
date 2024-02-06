@@ -57,10 +57,10 @@ main(int argc, char** argv)
     bool is_waiting_for_keypress = true;
     int k = 0, rem = 0;
     int keys[16] = {
-        KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR,
-        KEY_Q,   KEY_W,   KEY_E,     KEY_R,
-        KEY_A,   KEY_S,   KEY_D,     KEY_F,
-        KEY_Z,   KEY_X,   KEY_C,     KEY_V
+        KEY_X,     KEY_ONE,  KEY_TWO, KEY_THREE,
+        KEY_Q,     KEY_W,    KEY_E,   KEY_A,
+        KEY_S,     KEY_D,    KEY_Z,   KEY_C,
+        KEY_FOUR,  KEY_R,    KEY_E,   KEY_F
     };
 
     unsigned char x = 0, y = 0;
