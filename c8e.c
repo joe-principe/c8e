@@ -135,6 +135,7 @@ main(int argc, char** argv)
         vx = (opcode & 0x0F00) >> 8;
         vy = (opcode & 0x00F0) >> 4;
         kk = (opcode & 0x00FF);
+
         switch ((opcode & 0xF000) >> 12) {
             case 0x0:
                 if (opcode == 0x00E0) {
@@ -299,11 +300,11 @@ main(int argc, char** argv)
             case 0xE:
                 if (kk == 0x9E) {
                     /* SKP Vx */
-                    if (IsKeyDown(keys[(opcode & 0x0F00) >> 8]))
+                    if (IsKeyDown(keys[reg[vx]]))
                         pc += 2;
                 } else if (kk == 0xA1) {
                     /* SKNP Vx */
-                    if (IsKeyUp(keys[(opcode & 0x0F00) >> 8]))
+                    if (IsKeyUp(keys[reg[vx]]))
                         pc += 2;
                 }
                 break;

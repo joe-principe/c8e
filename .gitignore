@@ -53,3 +53,4 @@ dkms.conf
 
 # CHIP-8 ROMs
 *.ch8
+*.txt
