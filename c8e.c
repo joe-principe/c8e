@@ -60,7 +60,7 @@ main(int argc, char** argv)
         KEY_X,     KEY_ONE,  KEY_TWO, KEY_THREE,
         KEY_Q,     KEY_W,    KEY_E,   KEY_A,
         KEY_S,     KEY_D,    KEY_Z,   KEY_C,
-        KEY_FOUR,  KEY_R,    KEY_E,   KEY_F
+        KEY_FOUR,  KEY_R,    KEY_F,   KEY_V
     };
 
     unsigned char x = 0, y = 0;
