@@ -64,7 +64,7 @@ main(int argc, char** argv)
     };
 
     unsigned char x = 0, y = 0;
-    unsigned char height = 0, row = 0, mask = 0;
+    unsigned char height = 0, row = 0, mask = 0, temp = 0;
     unsigned char curr_row = 0, curr_pixel = 0, pixel_offset = 0;
     unsigned short loc = 0;
 
@@ -362,10 +362,11 @@ main(int argc, char** argv)
                     case 0x33:
                         /* LD B, Vx */
                         /* Hundreds in i, tens in i + 1, ones in i + 2 */
+                        temp = reg[vx];
                         for (i = 2; i >= 0; i--) {
-                            rem = reg[vx] % 10;
+                            rem = temp % 10;
                             ram[index + i] = rem;
-                            reg[vx] /= 10;
+                            temp /= 10;
                         }
                         break;
 
