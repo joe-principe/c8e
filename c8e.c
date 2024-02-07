@@ -140,7 +140,7 @@ main(int argc, char** argv)
             case 0x0:
                 if (opcode == 0x00E0) {
                     /* CLS */
-                    memset(display_buffer, 0, sizeof(unsigned char) * 32 * 64);
+                    memset(display_buffer, 0, sizeof(display_buffer));
                 } else if (opcode == 0x00EE) {
                     /* RET */
                     sp--;
@@ -155,7 +155,6 @@ main(int argc, char** argv)
 
             case 0x2:
                 /* CALL addr */
-                /* TODO: Make this detect stack overflows */
                 sp++;
                 stack[sp - 1] = pc;
                 pc = (opcode & 0x0FFF) - 2;
@@ -327,7 +326,6 @@ main(int argc, char** argv)
                         while (is_waiting_for_keypress) {
                             k = GetKeyPressed();
 
-                            /* hashmap faster? */
                             for (i = 0; i < 16; i++) {
                                 if (keys[i] == k) {
                                     is_waiting_for_keypress = false;
@@ -384,6 +382,11 @@ main(int argc, char** argv)
                         }
                         break;
                 }
+                break;
+
+            default:
+                fprintf(stderr, "Error: Unrecognized opcode: %4x\n", opcode);
+                break;
         }
 
         pc += 2;
