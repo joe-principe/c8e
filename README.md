@@ -1,6 +1,13 @@
 # c8e
 Chip-8 emulator using Raylib
 
+Note: "beep.wav" needs to be in the c8e directory in order for audio to play.
+
+# Things to Potentially Add
+- [ ] Changing the screen size
+- [ ] Changing the default volume
+- [ ] Loading programs from ETI-660 start
+
 # Resources Used
 Cowgod's Chip-8 Technical Reference v1.0:
 * http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#1.0

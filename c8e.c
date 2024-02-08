@@ -5,14 +5,9 @@
 #include <raylib.h>
 #include <time.h>
 
-#define INTERPRETER_END       0x01FF
 #define PROGRAM_START_DEFAULT 0x0200
 #define PROGRAM_START_ETI     0x0600
-#define FONT_START            0x0050
-#define FONT_END              0X009F
 
-#define SCR_WIDTH 64
-#define SCR_HEIGHT 32
 #define SCR_SCALE 10
 
 const unsigned char spr0[5] = { 0xF0, 0x90, 0x90, 0x90, 0xF0 };
@@ -49,13 +44,28 @@ main(int argc, char** argv)
     unsigned char delay_timer = 0, sound_timer = 0;
     unsigned char sp = 0x00;
     unsigned char vx = 0, vy = 0, kk = 0;
+
     unsigned short stack[16] = { 0 };
     unsigned short pc = PROGRAM_START_DEFAULT;
     unsigned short index = 0x0000;
     unsigned short opcode = 0x0000;
 
+    /* Variables for holding values during Fx33, when we put BCD into RAM */
+    unsigned char rem = 0, temp = 0;
+
+    /* A bool to check if a valid key has been pressed in the Fx0A opcode */
     bool is_waiting_for_keypress = true;
-    int k = 0, rem = 0;
+    
+    /* The key that was pressed */
+    int k = 0;
+
+    /**
+     * The list of valid keys the user can press.
+     *
+     * The mapping is weird because the CHIP-8 seems to have had the keys
+     * recognized in ascending order. eg, CHIP-8's 0, which is our 'x', is in
+     * the 0th position in the array, so this is also where x must go.
+     */
     int keys[16] = {
         KEY_X,     KEY_ONE,  KEY_TWO, KEY_THREE,
         KEY_Q,     KEY_W,    KEY_E,   KEY_A,
@@ -63,15 +73,49 @@ main(int argc, char** argv)
         KEY_FOUR,  KEY_R,    KEY_F,   KEY_V
     };
 
+    /* The x- and y-coordinates at which to draw a sprite */
     unsigned char x = 0, y = 0;
-    unsigned char height = 0, row = 0, mask = 0, temp = 0;
-    unsigned char curr_row = 0, curr_pixel = 0, pixel_offset = 0;
+
+    /**
+     * The index of the current pixel in the row being drawn, offset from the
+     * left
+     */
+    unsigned char pixel_offset = 0;
+
+    /**
+     * The starting height of the sprite and which row of the sprite is being
+     * drawn
+     */
+    unsigned char height = 0, row = 0;
+
+    /* A mask to get curr_pixel */
+    unsigned char mask = 0;
+
+    /**
+     * The pixel states of the row to be drawn and the current state of the
+     * pixel we're drawing
+     */
+    unsigned char curr_row = 0, curr_pixel = 0;
+
+    /* The location within the display buffer at which to draw the pixel */
     unsigned short loc = 0;
 
+    /* The loop iterator variable */
     int i = 0;
+
+    Sound beep;
+
+    /* The length of the ROM file, the ROM text, and the ROM file pointer */
     long length = 0;
     char *rom_bin = NULL;
     FILE *rom_fp = NULL;
+
+    /** Start Raylib Window **/
+    InitAudioDevice();
+    InitWindow(640, 320, "c8e");
+    SetTargetFPS(60);
+
+    beep = LoadSound("./beep.wav");
 
     srand(time(NULL));
 
@@ -124,10 +168,6 @@ main(int argc, char** argv)
     free(rom_bin);
     rom_bin = NULL;
     /** End ROM Loading **/
-
-    /** Start Raylib Window **/
-    InitWindow(640, 320, "c8e");
-    SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
         opcode = (ram[pc] << 8) + (ram[pc + 1]);
@@ -265,7 +305,6 @@ main(int argc, char** argv)
 
             case 0xD:
                 /* DRW Vx, Vy, nibble */
-                /* Something is wrong with this code */
                 reg[0xF] = 0;
 
                 x = reg[vx];
@@ -395,10 +434,13 @@ main(int argc, char** argv)
             delay_timer--;
 
         if (sound_timer > 0) {
-            /* TODO: Play sound here */
+            if (!IsSoundPlaying(beep))
+                PlaySound(beep);
+
             sound_timer--;
-            /* if (sound_timer == 0) */
-                /* Stop playing sound here */
+
+            if (sound_timer == 0)
+                StopSound(beep);
         }
 
         BeginDrawing();
@@ -412,6 +454,8 @@ main(int argc, char** argv)
     }
     /** End Raylib Window **/
 
+    UnloadSound(beep);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
